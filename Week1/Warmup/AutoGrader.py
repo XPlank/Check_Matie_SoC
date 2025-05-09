@@ -23,5 +23,5 @@ def run_all_test_cases(program_file):
             print(f'Test case {i}: FAILED')
 
 if __name__ == "__main__":
-    program_file = 'Greedy_Or_Not.py'  
+    program_file = 'Greedy_or_not.py'  
     run_all_test_cases(program_file)
