@@ -10,6 +10,7 @@ logging.basicConfig(format='%(levelname)s - %(asctime)s - %(message)s', datefmt=
 # Mapping from histories (str) to probability distribution over actions
 strategy_dict_x = {}
 strategy_dict_o = {}
+dic = {}
 
 
 class History:
@@ -76,39 +77,59 @@ class History:
     def is_win(self):
         # check if the board position is a win for either players
         # Feel free to implement this in anyway if needed
-        pass
+        b=self.board
+        return True if (b[0]==b[1]==b[2]!='0' or b[3]==b[4]==b[5]!='0' or b[6]==b[7]==b[8]!='0' or b[0]==b[3]==b[6]!='0' or b[1]==b[4]==b[7]!='0' or b[2]==b[5]==b[8]!='0' or b[0]==b[4]==b[8]!='0' or b[2]==b[4]==b[6]!='0') else False
 
     def is_draw(self):
         # check if the board position is a draw
         # Feel free to implement this in anyway if needed
-        pass
+        b=self.board
+        if not self.is_win() :
+            for i in range(9) :
+                if b[i] == '0' :
+                    return False
+            return True
+        else :
+            return False
 
     def get_valid_actions(self):
         # get the empty squares from the board
         # Feel free to implement this in anyway if needed
-        pass
+        b=self.board
+        actions=[]
+        for i in range(9):
+            if b[i] == '0' :
+                actions.append(i)
+        return actions
 
     def is_terminal_history(self):
         # check if the history is a terminal history
         # Feel free to implement this in anyway if needed
-        pass
+        # print(self.is_draw(),self.is_win())
+        return True if self.is_draw() or self.is_win() else False
 
     def get_utility_given_terminal_history(self):
         # Feel free to implement this in anyway if needed
-        pass
+        b=self.board
+        if self.is_draw() :
+            return 0
+        if self.is_win() :
+            return 1 if b.count('0')%2 == 0 else -1            
 
     def update_history(self, action):
         # In case you need to create a deepcopy and update the history obj to get the next history object.
         # Feel free to implement this in anyway if needed
-        pass
+        history=self.history.copy()
+        history.append(action)
+        return History(history)
 
 
 def backward_induction(history_obj):
     """
     :param history_obj: Histroy class object
-    :return: best achievable utility (float) for th current history_obj
+    :return: best achievable utility (float) for the current history_obj
     """
-    global strategy_dict_x, strategy_dict_o
+    global strategy_dict_x, strategy_dict_o , dic
     # TODO implement
     # (1) Implement backward induction for tictactoe
     # (2) Update the global variables strategy_dict_x or strategy_dict_o which are a mapping from histories to
@@ -122,7 +143,44 @@ def backward_induction(history_obj):
     # actions. But since tictactoe is a PIEFG, there always exists an optimal deterministic strategy (SPNE). So your
     # policy will be something like this {"0": 1, "1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0, "7": 0, "8": 0} where
     # "0" was the one of the best actions for the current player/history.
-    return -2
+    turn=True if history_obj.current_player()=='x' else False
+    Turn=1 if turn else -1
+    games=0
+    utility=0
+    correct_action=-1
+    utility_of_correct_action=-2
+    for action in history_obj.get_valid_actions() :
+        successor=history_obj.update_history(action)
+        if successor.is_terminal_history() :
+            games+=1
+            utility+=successor.get_utility_given_terminal_history()
+            if utility_of_correct_action < successor.get_utility_given_terminal_history()*Turn :
+                utility_of_correct_action = successor.get_utility_given_terminal_history()*Turn
+                correct_action=action
+        else :
+            listt=backward_induction(successor)
+            # if tuple(successor.board) in dic :
+            #     listt=dic[tuple(successor.board)]
+            # else :
+            #     listt=backward_induction(successor)
+            #     dic[tuple(successor.board)]=listt
+            utility_frac1,games1 = listt[0],listt[1]
+            games+=games1
+            if utility_of_correct_action < utility_frac1*Turn :
+                utility_of_correct_action = utility_frac1*Turn
+                correct_action = action
+            utility+=utility_frac1*games1
+
+    strategy={}
+    for i in range(9) :
+        strategy[str(i)] = 1 if i == correct_action else 0
+        
+    if turn :
+        strategy_dict_x[''.join([str(act) for act in history_obj.history])]=strategy
+    else :
+        strategy_dict_o[''.join([str(act) for act in history_obj.history])]=strategy
+    
+    return [utility/games , games]
     # TODO implement
 
 
