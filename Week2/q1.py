@@ -2,6 +2,7 @@ import json
 import copy  # use it for deepcopy if needed
 import math  # for math.inf
 import logging
+import time
 
 logging.basicConfig(format='%(levelname)s - %(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S',
                     level=logging.INFO)
@@ -178,51 +179,43 @@ def backward_induction(history_obj):
     utility=0
     correct_action=-1
     utility_of_correct_action=-2
-    # if len(history_obj.history) == 6 :
-    #     print(''.join([str(act) for act in history_obj.history]))
-    for action in history_obj.get_valid_actions() :
-        successor=history_obj.update_history(action)
-        if successor.is_terminal_history() :
-            games+=1
-            utility+=successor.get_utility_given_terminal_history()
-            if utility_of_correct_action < successor.get_utility_given_terminal_history()*Turn :
-                utility_of_correct_action = successor.get_utility_given_terminal_history()*Turn
-                if utility_of_correct_action == 1*Turn :
-                    nextt = True
-                correct_action=action
-        else :
-            # listt=backward_induction(successor)
-
-            if tuple(successor.board) in dic :
-                listt=dic[tuple(successor.board)]
+    if(tuple(history_obj.get_board()) in dic.keys()):
+        for action in history_obj.get_valid_actions() :
+            successor=history_obj.update_history(action)
+            if not successor.is_terminal_history() :
+                backward_induction(successor)
+        strategy=dic[tuple(history_obj.get_board())][0]
+    else :
+        for action in history_obj.get_valid_actions() :
+            successor=history_obj.update_history(action)
+            if successor.is_terminal_history() :
+                games+=1
+                utility+=successor.get_utility_given_terminal_history()
+                if utility_of_correct_action < successor.get_utility_given_terminal_history()*Turn :
+                    utility_of_correct_action = successor.get_utility_given_terminal_history()*Turn
+                    correct_action=action
+                    if successor.get_utility_given_terminal_history()*Turn == 1 :
+                        nextt = True
             else :
-                listt=backward_induction(successor)
-                dic[tuple(successor.board)]=listt
+                backward_induction(successor)
+                utility_frac1,games1 = dic[tuple(successor.get_board())][1],dic[tuple(successor.get_board())][2]
+                games+=games1
+                if utility_of_correct_action < utility_frac1*Turn :
+                    utility_of_correct_action = utility_frac1*Turn
+                    correct_action = action
+                utility+=utility_frac1*games1
 
-            utility_frac1,games1 = listt[0],listt[1]
-            # if len(successor.history) == 6 :
-            #     print(''.join([str(act) for act in successor.history]))
-            #     print(utility_frac1)
-            games+=games1
-            if utility_of_correct_action < utility_frac1*Turn :
-                utility_of_correct_action = utility_frac1*Turn
-                correct_action = action
-            utility+=utility_frac1*games1
-
-    strategy={}
-    for i in range(9) :
-        strategy[str(i)] = 1 if i == correct_action else 0
+        strategy={}
+        for i in range(9) :
+            strategy[str(i)] = 1 if i == correct_action else 0
+        dic[tuple(history_obj.get_board())]=[strategy,1*Turn , games] if nextt else [strategy,utility/games*Turn , games]
         
     if turn :
-        # strategy_dict_x[''.join([str(act) for act in history_obj.history])]=strategy
-        for i in randomiser(''.join([str(act) for act in history_obj.history])) :
-            strategy_dict_x[i]=strategy
+        strategy_dict_x[''.join([str(act) for act in history_obj.history])]=strategy
     else :
-        # strategy_dict_o[''.join([str(act) for act in history_obj.history])]=strategy
-        for i in randomiser(''.join([str(act) for act in history_obj.history])) :
-            strategy_dict_o[i]=strategy
+        strategy_dict_o[''.join([str(act) for act in history_obj.history])]=strategy
     
-    return [1 , games] if nextt else [utility/games , games]
+    return
     # TODO implement
 
 
@@ -237,5 +230,9 @@ def solve_tictactoe():
 
 if __name__ == "__main__":
     logging.info("Start")
+    start=time.time()
     solve_tictactoe()
+    end=time.time()
+    elapsed=end-start
+    print(f"{elapsed:.2f}")
     logging.info("End")
