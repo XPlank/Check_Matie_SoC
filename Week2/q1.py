@@ -123,6 +123,34 @@ class History:
         history.append(action)
         return History(history)
 
+def choose(word : str) :
+    ans=[]
+    if len(word) == 1 :
+        return [word] 
+    for i in range(len(word)) :
+        listt=choose(word[:i]+word[i+1:])
+        for wordd in listt :
+            ans.append(word[i]+wordd)
+    return ans
+
+def randomiser(word : str) :
+    if len(word) < 3:
+        return [word]
+    even=word[0::2]
+    odd=word[1::2]
+    word_list=[]
+    even_list=choose(even)
+    odd_list=choose(odd)
+    for ev in even_list:
+        for od in odd_list :
+            new_word=[]
+            for i in range(len(od)) :
+                new_word.append(ev[i])
+                new_word.append(od[i])
+            if len(ev) != len(od) :
+                new_word.append(ev[-1])
+            word_list.append(''.join(new_word))
+    return word_list
 
 def backward_induction(history_obj):
     """
@@ -146,9 +174,12 @@ def backward_induction(history_obj):
     turn=True if history_obj.current_player()=='x' else False
     Turn=1 if turn else -1
     games=0
+    nextt=False
     utility=0
     correct_action=-1
     utility_of_correct_action=-2
+    # if len(history_obj.history) == 6 :
+    #     print(''.join([str(act) for act in history_obj.history]))
     for action in history_obj.get_valid_actions() :
         successor=history_obj.update_history(action)
         if successor.is_terminal_history() :
@@ -156,15 +187,22 @@ def backward_induction(history_obj):
             utility+=successor.get_utility_given_terminal_history()
             if utility_of_correct_action < successor.get_utility_given_terminal_history()*Turn :
                 utility_of_correct_action = successor.get_utility_given_terminal_history()*Turn
+                if utility_of_correct_action == 1*Turn :
+                    nextt = True
                 correct_action=action
         else :
-            listt=backward_induction(successor)
-            # if tuple(successor.board) in dic :
-            #     listt=dic[tuple(successor.board)]
-            # else :
-            #     listt=backward_induction(successor)
-            #     dic[tuple(successor.board)]=listt
+            # listt=backward_induction(successor)
+
+            if tuple(successor.board) in dic :
+                listt=dic[tuple(successor.board)]
+            else :
+                listt=backward_induction(successor)
+                dic[tuple(successor.board)]=listt
+
             utility_frac1,games1 = listt[0],listt[1]
+            # if len(successor.history) == 6 :
+            #     print(''.join([str(act) for act in successor.history]))
+            #     print(utility_frac1)
             games+=games1
             if utility_of_correct_action < utility_frac1*Turn :
                 utility_of_correct_action = utility_frac1*Turn
@@ -176,16 +214,20 @@ def backward_induction(history_obj):
         strategy[str(i)] = 1 if i == correct_action else 0
         
     if turn :
-        strategy_dict_x[''.join([str(act) for act in history_obj.history])]=strategy
+        # strategy_dict_x[''.join([str(act) for act in history_obj.history])]=strategy
+        for i in randomiser(''.join([str(act) for act in history_obj.history])) :
+            strategy_dict_x[i]=strategy
     else :
-        strategy_dict_o[''.join([str(act) for act in history_obj.history])]=strategy
+        # strategy_dict_o[''.join([str(act) for act in history_obj.history])]=strategy
+        for i in randomiser(''.join([str(act) for act in history_obj.history])) :
+            strategy_dict_o[i]=strategy
     
-    return [utility/games , games]
+    return [1 , games] if nextt else [utility/games , games]
     # TODO implement
 
 
 def solve_tictactoe():
-    backward_induction(History())
+    backward_induction(History([]))
     with open('./policy_x.json', 'w') as f:
         json.dump(strategy_dict_x, f)
     with open('./policy_o.json', 'w') as f:
