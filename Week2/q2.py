@@ -1,6 +1,7 @@
 import copy  # use it for deepcopy if needed
 import math
 import logging
+import itertools 
 
 logging.basicConfig(format='%(levelname)s - %(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S',
                     level=logging.INFO)
@@ -13,10 +14,10 @@ board_positions_val_dict1 = {}
 # Global variable to store the visited histories in the process of alpha beta pruning.
 visited_histories_list = []
 visited_histories_list1 = []
-
+lists=[]
 
 class History:
-    def __init__(self, num_boards=2, history=None):
+    def __init__(self,num_boards=2, history=None):
         """
         # self.history : Eg: [0, 4, 2, 5]
             keeps track of sequence of actions played since the beginning of the game.
@@ -58,7 +59,9 @@ class History:
         :param num_boards: Number of boards in the game of Notakto.
         :param history: list keeps track of sequence of actions played since the beginning of the game.
         """
+        global lists
         self.num_boards = num_boards
+        self.listt=lists
         if history is not None:
             self.history = history
             self.boards = self.get_boards()
@@ -172,7 +175,7 @@ class History:
         for i in range(self.num_boards-1,-1,-1) :
             if(active_boards_list[i]):
                 # for j in range(9) :
-                for j in [4,0,2,6,8,1,3,5,7] :
+                for j in self.listt :
                     if(self.boards[i][j]=='0') :
                         valid_actions.append(9*i+j)
         return valid_actions
@@ -206,42 +209,39 @@ def alpha_beta_pruning(history_obj, alpha, beta, max_player_flag):
     :return: float
     """
     # These two already given lines track the visited histories.
-    global board_positions_val_dict1
+    # global board_positions_val_dict1
     global visited_histories_list
     visited_histories_list.append(history_obj.history)
     # TODO implement
-    if (history_obj.get_boards_str() not in board_positions_val_dict1.keys()) :
-        if(history_obj.is_terminal_history()) :
-            board_positions_val_dict1[history_obj.get_boards_str()] = history_obj.get_value_given_terminal_history()
+    if(history_obj.is_terminal_history()) :
+        return history_obj.get_value_given_terminal_history()
+    else :
+        if max_player_flag :
+            maxeval=-math.inf
+            for action in history_obj.get_valid_actions() :
+                evalu=alpha_beta_pruning(History(history_obj.num_boards,history_obj.history+[action]),alpha,beta,not max_player_flag)
+                maxeval=max(maxeval,evalu)
+                alpha=max(alpha,evalu)
+                # print(alpha,beta)
+                if alpha >= beta:
+                    break
+                    # pass
+            # if(board_positions_val_dict[history_obj.get_boards_str()] != maxeval) :
+            #     print("asdfgh")
+            return maxeval
         else :
-            if max_player_flag :
-                maxeval=-math.inf
-                for action in history_obj.get_valid_actions() :
-                    evalu=alpha_beta_pruning(History(history_obj.num_boards,history_obj.history+[action]),alpha,beta,not max_player_flag)
-                    maxeval=max(maxeval,evalu)
-                    alpha=max(alpha,evalu)
-                    # print(alpha,beta)
-                    if alpha >= beta:
-                        break
-                        # pass
-                # if(board_positions_val_dict[history_obj.get_boards_str()] != maxeval) :
-                #     print("asdfgh")
-                board_positions_val_dict1[history_obj.get_boards_str()] = maxeval
-            else :
-                mineval=math.inf
-                for action in history_obj.get_valid_actions() :
-                    evalu=alpha_beta_pruning(History(history_obj.num_boards,history_obj.history+[action]),alpha,beta,not max_player_flag)
-                    mineval=min(mineval,evalu)
-                    beta=min(beta,evalu)
-                    # print(alpha,beta)
-                    if alpha >= beta :
-                        break
-                        # pass
-                # if(board_positions_val_dict[history_obj.get_boards_str()] != mineval) :
-                #     print("asdfgh")
-                board_positions_val_dict1[history_obj.get_boards_str()] = mineval
-    
-    return board_positions_val_dict1[history_obj.get_boards_str()]
+            mineval=math.inf
+            for action in history_obj.get_valid_actions() :
+                evalu=alpha_beta_pruning(History(history_obj.num_boards,history_obj.history+[action]),alpha,beta,not max_player_flag)
+                mineval=min(mineval,evalu)
+                beta=min(beta,evalu)
+                # print(alpha,beta)
+                if alpha >= beta :
+                    break
+                    # pass
+            # if(board_positions_val_dict[history_obj.get_boards_str()] != mineval) :
+            #     print("asdfgh")
+            return mineval
     # TODO implement
 
 
@@ -285,8 +285,27 @@ def solve_alpha_beta_pruning(history_obj, alpha, beta, max_player_flag):
 
 if __name__ == "__main__":
     logging.info("start")
-    n=3
+    n=2
     logging.info("alpha beta pruning")
+    # permutations = [list(p) for p in itertools.permutations([0,1,2,3,4,5,6,7,8])]
+    # mini=math.inf
+    # for listt in permutations :
+    #     lists=listt
+    #     value, visited_histories = solve_alpha_beta_pruning(History(history=[], num_boards=n), -math.inf, math.inf, True)
+    #     # logging.info("maxmin value {}".format(value))
+    #     # logging.info("Number of histories visited {}".format(len(visited_histories)))
+    #     if(value != 1) :
+    #         logging.info("error")
+    #     # if(len(visited_histories_list)==550) :
+    #     logging.info("maxmin value {}".format(lists))
+    #     # mini=min(mini,len(visited_histories_list))
+    #     if(mini>len(visited_histories_list)) :
+    #         mini=len(visited_histories_list)
+    #         ans=lists
+    #     board_positions_val_dict1={}
+    #     visited_histories_list=[]
+    # print(mini,ans)
+    lists=[4, 0, 8, 2, 7, 3, 5, 1, 6]
     value, visited_histories = solve_alpha_beta_pruning(History(history=[], num_boards=n), -math.inf, math.inf, True)
     logging.info("maxmin value {}".format(value))
     logging.info("Number of histories visited {}".format(len(visited_histories)))
@@ -294,3 +313,4 @@ if __name__ == "__main__":
     logging.info("maxmin value {}".format(maxmin(History(history=[], num_boards=n), True)))
     logging.info("Number of histories visited {}".format(len(visited_histories_list1)))
     logging.info("end")
+# 550 [4, 0, 8, 2, 7, 3, 5, 1, 6]
